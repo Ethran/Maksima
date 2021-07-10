@@ -6,9 +6,61 @@ template <typename A, typename V>
 class FunctionMaxima
 {
 public:
+  class point_type;
+
+private:
+  class size_type
+  {
+  public:
+    size_type(const unsigned long long int &a)
+      : roz(a)
+    {}
+    friend bool
+    operator==(const size_type &a, const size_type &b)
+    {
+      return a.roz == b.roz;
+    };
+    unsigned long long int roz;
+  };
+  struct cmp
+  {
+    bool
+    operator()(const point_type &a, const point_type &b) const
+    {
+      a.arg();
+      b.arg();
+      if (a.arg() < b.arg())
+        return true;
+      return false;
+    }
+  };
+
+  struct cmpMax
+  {
+    bool
+    operator()(const point_type &a, const point_type &b) const
+    {
+      a.arg();
+      b.arg();
+      // nie mamy gwaracji że jest ==
+      if (a.value() > b.value())
+        return true;
+      if ((a.value() < b.value()))
+        return false;
+
+      if (a.arg() < b.arg())
+        return true;
+      return false;
+    }
+  };
+  using Data_t = std::multiset<point_type, cmp>;
+  Data_t valueSet;
+  Data_t maxValueSet;
+
+public:
   FunctionMaxima();
 
-  FunctionMaxima(FunctionMaxima &element);
+  FunctionMaxima(const FunctionMaxima &element);
 
   FunctionMaxima<A, V>
   operator=(FunctionMaxima<A, V> &element);
@@ -27,44 +79,83 @@ public:
   void
   erase(A const &a);
 
-  struct iterator
+  // iterator wskazujący na pierwsze lokalne maksimum
+  typename Data_t::iterator const
+  mx_begin() const
   {
-    struct Iterator
-    {
-      using iterator_category = std::bidirectional_iterator_tag;
-      using difference_type   = std::ptrdiff_t;
-      using value_type        = V;
-      using pointer           = value_type *;
-      using reference         = value_type &;
-    };
-  };
+    return maxValueSet.begin();
+  }
+  // iterator wskazujący za ostatnie lokalne maksimum
+  typename Data_t::iterator const
+  mx_end() const
+  {
+    return maxValueSet.end();
+  }
+
+
+
+  typename Data_t::iterator
+  begin()
+  {
+    return valueSet.begin();
+  }
+  typename Data_t::iterator
+  end()
+  {
+    return valueSet.end();
+  }
 
   class point_type
   {
-    // Zwraca argument funkcji.
-    A const &
-    arg() const;
+  private:
+    friend class FunctionMaxima;
+    A a;
+    V v;
+    point_type(const A &_arg)
+      : a(_arg)
+    {}
+    point_type(const A &_arg, const V &_value)
+      : a(_arg)
+      , v(_value)
+    {}
+    bool isMax = false;
+    // Zwraca argument funkcji. referencja do mod
+    A &
+    arg()
+    {
+      return a;
+    }
 
     // Zwraca wartość funkcji w tym punkcie.
-    V const &
-    value() const;
-  };
-
-private:
-  struct cmp
-  {
-    bool
-    operator()(std::pair<A, V> &a, std::pair<A, V> &b) const
+    V &
+    value()
     {
-      if (a.first < b.first)
-        return true;
-      return false;
+      return v;
+    }
+
+  public:
+    // Zwraca argument funkcji.
+    const A &
+    arg() const
+    {
+      return a;
+    }
+
+    // Zwraca wartość funkcji w tym punkcie.
+    const V &
+    value() const
+    {
+      return v;
     }
   };
 
-  using Data = std::map<A, V, cmp>;
-  Data valueSet;
+  size_type
+  size() const
+  {
+    return size_type(valueSet.size());
+  }
 };
+
 template <typename A, typename V>
 FunctionMaxima<A, V>::FunctionMaxima()
 {
@@ -77,10 +168,9 @@ FunctionMaxima<A, V>::FunctionMaxima()
 }
 
 template <typename A, typename V>
-FunctionMaxima<A, V>::FunctionMaxima(FunctionMaxima &element)
-{
-  valueSet = element;
-}
+FunctionMaxima<A, V>::FunctionMaxima(const FunctionMaxima &element)
+  : valueSet(element.valueSet)
+{}
 
 template <typename A, typename V>
 FunctionMaxima<A, V>
@@ -91,62 +181,23 @@ template <typename A, typename V>
 V const &
 FunctionMaxima<A, V>::value_at(A const &a) const
 {
-  try
-    {
-      if (valueSet.find(a) == valueSet.end())
-        throw std::exception("value does not exist");
-      return valueSet.at(a);
-    }
-  catch (std::exception &e)
-    {
-      throw e;
-    }
-  catch (...)
-    {
-      std::cout << "Default Exception\n";
-    }
+  return valueSet.at(point_type(a));
 }
 
 template <typename A, typename V>
 void
 FunctionMaxima<A, V>::set_value(A const &a, V const &v)
 {
-  try
-    {
-      if (valueSet.find(a) != valueSet.end())
-        throw std::exception("value already exist");
-      valueSet[a] = v;
-    }
-  catch (std::exception &e)
-    {
-      throw e;
-    }
-  catch (...)
-    {
-      throw;
-    }
+  valueSet.insert(point_type(a, v));
 }
 
 template <typename A, typename V>
 void
 FunctionMaxima<A, V>::erase(A const &a)
 {
-  try
-    {
-      if (valueSet.find(a) == valueSet.end())
-        throw std::exception("value does not exist");
-
-      valueSet.erase(valueSet.find(a));
-    }
-  catch (std::exception &e)
-    {
-      throw e;
-    }
-  catch (...)
-    {
-      throw;
-    }
+  valueSet.erase(valueSet.find(point_type(a)));
 }
+
 template <typename A, typename V>
 bool
 operator<(FunctionMaxima<A, V> first, FunctionMaxima<A, V> second)
@@ -155,11 +206,4 @@ operator<(FunctionMaxima<A, V> first, FunctionMaxima<A, V> second)
     return true;
   else
     return false;
-}
-
-int
-fun()
-{
-  printf("%dhello", 1);
-  return 0;
 }
