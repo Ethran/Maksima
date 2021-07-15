@@ -1,13 +1,8 @@
-//============================================================================
-// Name        : Maksima.cpp
-// Author      :
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
+#include <cassert>
+#include <iostream>
+#include <vector>
 
 #include "function_maxima.h"
-
 
 class Secret
 {
@@ -66,30 +61,105 @@ fun_mx_equal(const FunctionMaxima<A, V> &                  F,
          std::equal(F.mx_begin(), F.mx_end(), L.begin(), same<A, V>());
 }
 
-
-
 int
 main()
 {
+  //  std::set<int> myset;
+  //  myset.insert(1);
+  //  myset.insert(2);
+  //  myset.insert(3);
+  //  myset.insert(4);
+  //  auto it = myset.find(1);
+  //
+  //  auto poprzedni = it;
+  //  poprzedni--;
+  //  myset.erase(it);
+  //  std::cout << *it;
+  //
+  //  std::cout << *poprzedni;
+  //  return 0;
   FunctionMaxima<int, int> fun;
-  int                      a = 0, b = 1;
-  fun.set_value(a, b);
-  fun.set_value(2, 4);
-  fun.set_value(1, 4);
-  fun.set_value(-1, 4);
-  FunctionMaxima<int, int> F(fun);
-  for (const auto &p : F)
-    {
-      std::cout << p.arg() << " -> " << p.value() << std::endl;
-    }
   fun.set_value(0, 1);
   assert(fun_equal(fun, {{0, 1}}));
   assert(fun_mx_equal(fun, {{0, 1}}));
 
-  //  [[maybe_unused]] auto newIter = funa.begin();
-  //  int                   zmienna;
-  //  zmienna = 9;
-  //  ++zmienna;
-  //  fun();
+  fun.set_value(0, 0);
+
+  assert(fun_equal(fun, {{0, 0}}));
+  assert(fun_mx_equal(fun, {{0, 0}}));
+
+  fun.set_value(1, 0);
+  fun.set_value(2, 0);
+  assert(fun_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
+  assert(fun_mx_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
+
+  fun.set_value(1, 1);
+  assert(fun_mx_equal(fun, {{1, 1}}));
+
+  fun.set_value(2, 2);
+  assert(fun_mx_equal(fun, {{2, 2}}));
+
+  fun.set_value(0, 2);
+
+  fun.set_value(1, 3);
+  assert(fun_mx_equal(fun, {{1, 3}}));
+
+  try
+    {
+      std::cout << fun.value_at(4) << std::endl;
+      assert(false);
+    }
+  catch (InvalidArg &e)
+    {
+      std::cout << e.what() << std::endl;
+    }
+
+  fun.erase(1);
+  assert(fun.find(1) == fun.end());
+  assert(fun_mx_equal(fun, {{0, 2}, {2, 2}}));
+
+
+
+  fun.set_value(-2, 0);
+  fun.set_value(-1, -1);
+  FunctionMaxima<int, int> F = fun;
+  for (const auto &p : F)
+    {
+      std::cout << p.arg() << " -> " << p.value() << std::endl;
+    }
+  assert(fun_mx_equal(fun, {{0, 2}, {2, 2}, {-2, 0}}));
+
+  std::vector<FunctionMaxima<Secret, Secret>::point_type> v;
+  {
+    FunctionMaxima<Secret, Secret> temp;
+    temp.set_value(Secret::create(1), Secret::create(10));
+    temp.set_value(Secret::create(2), Secret::create(20));
+    v.push_back(*temp.begin());
+    v.push_back(*temp.mx_begin());
+  }
+  assert(v[0].arg().get() == 1);
+  assert(v[0].value().get() == 10);
+  assert(v[1].arg().get() == 2);
+  assert(v[1].value().get() == 20);
+
+  // To powinno działać szybko.
+  FunctionMaxima<int, int> big;
+  using size_type   = decltype(big)::size_type;
+  const size_type N = 100000;
+  for (size_type i = 1; i <= N; ++i)
+    {
+      big.set_value(i, i);
+    }
+  size_type counter = 0;
+  for (size_type i = 1; i <= N; ++i)
+    {
+      big.set_value(i, big.value_at(i) + 1);
+      for (auto it = big.mx_begin(); it != big.mx_end(); ++it)
+        {
+          ++counter;
+        }
+    }
+  assert(counter == 2 * N - 1);
+  big = fun;
   return 0;
 }
