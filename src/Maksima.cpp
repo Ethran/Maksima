@@ -64,27 +64,12 @@ fun_mx_equal(const FunctionMaxima<A, V> &                  F,
 int
 main()
 {
-  //  std::set<int> myset;
-  //  myset.insert(1);
-  //  myset.insert(2);
-  //  myset.insert(3);
-  //  myset.insert(4);
-  //  auto it = myset.find(1);
-  //
-  //  auto poprzedni = it;
-  //  poprzedni--;
-  //  myset.erase(it);
-  //  std::cout << *it;
-  //
-  //  std::cout << *poprzedni;
-  //  return 0;
   FunctionMaxima<int, int> fun;
   fun.set_value(0, 1);
   assert(fun_equal(fun, {{0, 1}}));
   assert(fun_mx_equal(fun, {{0, 1}}));
 
   fun.set_value(0, 0);
-
   assert(fun_equal(fun, {{0, 0}}));
   assert(fun_mx_equal(fun, {{0, 0}}));
 
@@ -92,15 +77,23 @@ main()
   fun.set_value(2, 0);
   assert(fun_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
   assert(fun_mx_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
+  try
+    {
+      fun.value_at(0);
+      fun.value_at(2);
+      fun.value_at(13);
+    }
+  catch (InvalidArg &e)
+    {
+      std::cout << e.what() << std::endl;
+    }
 
   fun.set_value(1, 1);
   assert(fun_mx_equal(fun, {{1, 1}}));
 
   fun.set_value(2, 2);
   assert(fun_mx_equal(fun, {{2, 2}}));
-
   fun.set_value(0, 2);
-
   fun.set_value(1, 3);
   assert(fun_mx_equal(fun, {{1, 3}}));
 
@@ -118,15 +111,8 @@ main()
   assert(fun.find(1) == fun.end());
   assert(fun_mx_equal(fun, {{0, 2}, {2, 2}}));
 
-
-
   fun.set_value(-2, 0);
   fun.set_value(-1, -1);
-  FunctionMaxima<int, int> F = fun;
-  for (const auto &p : F)
-    {
-      std::cout << p.arg() << " -> " << p.value() << std::endl;
-    }
   assert(fun_mx_equal(fun, {{0, 2}, {2, 2}, {-2, 0}}));
 
   std::vector<FunctionMaxima<Secret, Secret>::point_type> v;
@@ -161,5 +147,4 @@ main()
     }
   assert(counter == 2 * N - 1);
   big = fun;
-  return 0;
 }

@@ -41,7 +41,7 @@ public:
 
 
   FunctionMaxima<A, V> &
-  operator=(FunctionMaxima<A, V> &element);
+  operator=(const FunctionMaxima<A, V> &element);
 
 
   // Zwraca wartość w punkcie a, rzuca wyjątek InvalidArg, jeśli a nie
@@ -235,28 +235,36 @@ FunctionMaxima<A, V>::check(iterator it)
 
 template <typename A, typename V>
 FunctionMaxima<A, V>::FunctionMaxima()
+{}
+
+
+template <typename A, typename V>
+FunctionMaxima<A, V>::FunctionMaxima(const FunctionMaxima &element)
 {
   try
-    {}
-  catch (std::exception &e)
     {
-      throw e;
+      valueSet    = element.valueSet;
+      maxValueSet = element.maxValueSet;
+    }
+  catch (...)
+    {
+      valueSet.clear();
+      maxValueSet.clear();
+      throw;
     }
 }
 
 
 template <typename A, typename V>
-FunctionMaxima<A, V>::FunctionMaxima(const FunctionMaxima &element)
-  : valueSet(element.valueSet)
-{}
-
-
-template <typename A, typename V>
 FunctionMaxima<A, V> &
-FunctionMaxima<A, V>::operator=(FunctionMaxima<A, V> &element)
+FunctionMaxima<A, V>::operator=(const FunctionMaxima<A, V> &element)
 {
-  valueSet    = element.valueSet;
-  maxValueSet = element.maxValueSet;
+  Data_t     first  = element.valueSet;
+  Data_max_t second = element.maxValueSet;
+  valueSet          = std::move(first);
+  maxValueSet       = std::move(second);
+
+
   return *this;
 }
 
@@ -267,7 +275,7 @@ FunctionMaxima<A, V>::value_at(A const &a) const
 {
   auto it = valueSet.find(point_type(std::make_shared<const A>(a)));
   if (it == valueSet.end())
-    throw InvalidArg("invalid arg  ");
+    throw InvalidArg("invalid argument value");
 
   return it->value();
 }
@@ -284,7 +292,7 @@ FunctionMaxima<A, V>::set_value(A const &a, V const &v)
     }
   tmp = point_type(std::make_shared<const A>(a), std::make_shared<const V>(v));
 
-  valueSet.insert(tmp);
+  valueSet.insert(tmp); // silna odpornosc gwarantowana
   iterator it = valueSet.find(tmp);
   check(it);
   if (it != valueSet.begin())
@@ -311,8 +319,8 @@ FunctionMaxima<A, V>::erase(A const &a)
   point_type tmp = point_type(std::make_shared<const A>(a));
   iterator   it  = valueSet.find(tmp);
   if (it == valueSet.end())
-    throw InvalidArg("point does not exist");
-  tmp=*it;
+    throw InvalidArg("invalid argument value");
+  tmp = *it;
 
   if (maxValueSet.find(tmp) != maxValueSet.end())
     maxValueSet.erase(tmp);
@@ -384,16 +392,6 @@ FunctionMaxima<A, V>::find(A const &a) const
   return valueSet.find(tmp);
 }
 
-
-template <typename A, typename V>
-bool
-operator<(FunctionMaxima<A, V> first, FunctionMaxima<A, V> second)
-{
-  if (true)
-    return true;
-  else
-    return false;
-}
 
 
 template <typename A, typename V>
