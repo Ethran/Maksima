@@ -184,7 +184,6 @@ FunctionMaxima<A, V>::check(iterator it)
 //	     f(x) nie jest mniejsze niż f(r), gdzie r jest najmniejszym elementem
 //	     dziedziny f, takim że x < r.
   // clang-format on
-  remove(*it);
 
 
   if (valueSet.size() == 0)
@@ -199,6 +198,9 @@ FunctionMaxima<A, V>::check(iterator it)
       maxValueSet.insert(*it);
       return;
     }
+
+  remove(*it);
+
   auto next = it;
   ++next;
   auto previous = it;
@@ -391,7 +393,6 @@ FunctionMaxima<A, V>::find(A const &a) const
 
   return valueSet.find(tmp);
 }
-
 
 
 template <typename A, typename V>
