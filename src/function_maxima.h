@@ -13,16 +13,14 @@ private:
   struct cmp;
   struct cmpMax;
 
-  using Data_t     = std::multiset<point_type, cmp>;
-  using Data_max_t = std::multiset<point_type, cmpMax>;
+  using Data_t     = std::set<point_type, cmp>;
+  using Data_max_t = std::set<point_type, cmpMax>;
 
   using A_ptr = std::shared_ptr<const A>;
   using V_ptr = std::shared_ptr<const V>;
 
   Data_t     valueSet;
   Data_max_t maxValueSet;
-  void
-  remove(const point_type &it);
 
 public:
   using iterator    = typename Data_t::iterator;
@@ -32,7 +30,7 @@ public:
 private:
   // check and change maxima;
   void
-  check(iterator it);
+  check(iterator it) noexcept;
 
 public:
   FunctionMaxima();
@@ -53,7 +51,7 @@ public:
   // Zmienia funkcję tak, żeby zachodziło f(a) = v. Jeśli a nie należy do
   // obecnej dziedziny funkcji, jest do niej dodawany. Najwyżej O(log n).
   void
-  set_value(A const &a, V const &v);
+  set_value(A const &arg, V const &val);
 
 
   // Usuwa a z dziedziny funkcji. Jeśli a nie należało do dziedziny funkcji,
@@ -129,7 +127,7 @@ template <typename A, typename V>
 struct FunctionMaxima<A, V>::cmp
 {
   bool
-  operator()(const point_type &a, const point_type &b) const
+  operator()(const point_type &a, const point_type &b) const noexcept
   {
     a.arg();
     b.arg();
@@ -144,7 +142,7 @@ template <typename A, typename V>
 struct FunctionMaxima<A, V>::cmpMax
 {
   bool
-  operator()(const point_type &a, const point_type &b) const
+  operator()(const point_type &a, const point_type &b) const noexcept
   {
     // kiedy jest wieksze:
     if ((b.value() < a.value()))
@@ -164,16 +162,7 @@ struct FunctionMaxima<A, V>::cmpMax
 
 template <typename A, typename V>
 void
-FunctionMaxima<A, V>::remove(const point_type &it)
-{
-  if (maxValueSet.find(it) != maxValueSet.end())
-    maxValueSet.erase(it);
-}
-
-
-template <typename A, typename V>
-void
-FunctionMaxima<A, V>::check(iterator it)
+FunctionMaxima<A, V>::check(iterator it) noexcept
 {
   // clang-format off
 //	  Powiemy, że x jest lokalnym maksimum funkcji f, gdy spełnione są dwa warunki:
@@ -192,46 +181,25 @@ FunctionMaxima<A, V>::check(iterator it)
       return;
     }
   if (valueSet.size() == 1)
-
     {
-      maxValueSet.clear();
-      maxValueSet.insert(*it);
+      assert(maxValueSet.size() == 1);
       return;
     }
-
-  remove(*it);
-
   auto next = it;
   ++next;
   auto previous = it;
-  if (it == valueSet.begin())
+  if (it != valueSet.begin())
     {
-      if (!(it->value() < next->value()))
-        {
-          maxValueSet.insert(*it);
-        }
-      return;
-    }
-  --previous;
-
-  if (next == valueSet.end())
-    {
-      if (!(it->value() < previous->value()))
-        {
-          maxValueSet.insert(*it);
-        }
-
-
-      return;
+      --previous;
+      if (it->value() < previous->value())
+        maxValueSet.erase(*it);
     }
 
-  if (!(it->value() < previous->value()) && !(it->value() < next->value()))
+  if (next != valueSet.end())
     {
-      maxValueSet.insert(*it);
+      if (it->value() < next->value())
+        maxValueSet.erase(*it);
     }
-
-
-  return;
 }
 
 
@@ -285,31 +253,90 @@ FunctionMaxima<A, V>::value_at(A const &a) const
 
 template <typename A, typename V>
 void
-FunctionMaxima<A, V>::set_value(A const &a, V const &v)
+FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
 {
-  point_type tmp = point_type(std::make_shared<const A>(a));
+  point_type toInsert =
+    point_type(std::make_shared<const A>(arg), std::make_shared<const V>(val));
+
+
+  point_type tmp   = point_type(std::make_shared<const A>(arg));
+  bool       reset = false;
+  Data_t     backup;
+  point_type toErase = toInsert;
+
   if (valueSet.find(tmp) != valueSet.end())
     {
-      erase(a);
+      backup  = valueSet;
+      toErase = *valueSet.find(tmp);
+      valueSet.erase(tmp);
+      reset = true;
     }
-  tmp = point_type(std::make_shared<const A>(a), std::make_shared<const V>(v));
-
-  valueSet.insert(tmp); // silna odpornosc gwarantowana
-  iterator it = valueSet.find(tmp);
-  check(it);
-  if (it != valueSet.begin())
+  if (valueSet.size() == 0)
     {
-      auto previous = it;
-      --previous;
-
-
-      check(previous);
+      valueSet.insert(toInsert);
+      maxValueSet.clear();
+      maxValueSet.insert(toInsert);
+      return;
     }
-  auto next = it;
-  ++next;
-  if (next != valueSet.end())
+
+  iterator previous;
+  iterator next;
+  iterator present;
+  bool     a = false, b = false, c = false, d = false;
+  try
     {
-      check(next);
+      valueSet.insert(toInsert); // silna odpornosc gwarantowana
+      a = true;
+      maxValueSet.insert(toInsert);
+      b        = true;
+      present  = valueSet.find(toInsert);
+      next     = present;
+      previous = present;
+      check(present);
+
+      ++next;
+      if (present != valueSet.begin())
+        {
+          --previous;
+          if (maxValueSet.find(*previous) == maxValueSet.end())
+            {
+              maxValueSet.insert(*previous);
+              c = true;
+            }
+          check(previous);
+        }
+
+
+      if (next != valueSet.end())
+        {
+          if (maxValueSet.find(*next) == maxValueSet.end())
+            {
+              maxValueSet.insert(*next);
+              d = true;
+            }
+          check(next);
+        }
+      if (reset)
+        {
+          if (maxValueSet.find(toErase) != maxValueSet.end())
+            {
+              maxValueSet.erase(toErase);
+            }
+        }
+    }
+  catch (...)
+    {
+      if (reset)
+        valueSet = move(backup);
+      else if (a)
+        valueSet.erase(toInsert);
+      if (b)
+        maxValueSet.erase(toInsert);
+      if (c)
+        maxValueSet.erase(*previous);
+      if (d)
+        maxValueSet.erase(*next);
+      throw;
     }
 }
 
@@ -318,38 +345,70 @@ template <typename A, typename V>
 void
 FunctionMaxima<A, V>::erase(A const &a)
 {
-  point_type tmp = point_type(std::make_shared<const A>(a));
-  iterator   it  = valueSet.find(tmp);
+  iterator it = valueSet.find(point_type(std::make_shared<const A>(a)));
   if (it == valueSet.end())
     throw InvalidArg("invalid argument value");
-  tmp = *it;
-
-  if (maxValueSet.find(tmp) != maxValueSet.end())
-    maxValueSet.erase(tmp);
 
   if (valueSet.size() == 1)
     {
-      valueSet.erase(it);
+      valueSet.clear();
+      maxValueSet.clear();
       return;
     }
 
-  if (valueSet.begin() == it)
+
+
+  point_type maxForErase = *it;
+  auto       next        = it;
+  ++next;
+  auto previous      = it;
+  bool isPreviousMax = false;
+  bool isNextMax     = false;
+
+  try
     {
+      if (valueSet.begin() != it)
+        {
+          --previous;
+          if (maxValueSet.find(*previous) == maxValueSet.end())
+            {
+              maxValueSet.insert(*previous);
+              isPreviousMax = true;
+            }
+        }
+      if (next != valueSet.end())
+        {
+          if (maxValueSet.find(*next) == maxValueSet.end())
+            {
+              maxValueSet.insert(*next);
+              isNextMax = true;
+            }
+        }
       valueSet.erase(it);
-      check(valueSet.begin());
-      return;
+      if (valueSet.begin() != it)
+        {
+          check(previous);
+        }
+      if (next != valueSet.end())
+        {
+          check(next);
+        }
+
+      // usunac element
+      if (maxValueSet.find(maxForErase) != maxValueSet.end())
+        maxValueSet.erase(maxForErase);
+    }
+  catch (...)
+    {
+      if (isPreviousMax)
+        maxValueSet.erase(*previous);
+      if (isNextMax)
+        maxValueSet.erase(*next);
+      throw;
     }
 
-  auto previous = it;
-  --previous;
-  point_type prevPoint = *previous;
-  valueSet.erase(tmp);
 
-  it = valueSet.find(prevPoint);
-  check(it);
-  ++it;
-  if (it != valueSet.end())
-    check(it);
+  return;
 }
 
 
