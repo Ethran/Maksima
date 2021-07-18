@@ -180,11 +180,11 @@ FunctionMaxima<A, V>::check(iterator it) noexcept
       maxValueSet.clear();
       return;
     }
-  if (valueSet.size() == 1)
-    {
-      assert(maxValueSet.size() == 1);
-      return;
-    }
+  //  if (valueSet.size() == 1)
+  //    {
+  //      assert(maxValueSet.size() == 1);
+  //      return;
+  //    }
   auto next     = valueSet.upper_bound(*it);
   auto previous = valueSet.lower_bound(*it);
   ;
@@ -283,6 +283,8 @@ FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
   if (valueSet.find(tmp) != valueSet.end())
     {
       tmp = *valueSet.find(tmp);
+      if (!(tmp.value() < val) && !(val < tmp.value()))
+        return;
       if (maxValueSet.find(tmp) != maxValueSet.end())
         toRemoveMax = true;
 
@@ -331,8 +333,12 @@ FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
       if (toRemove)
         {
           valueSet.erase(valueSet.lower_bound(tmp));
+
+
           if (toRemoveMax)
-            maxValueSet.erase(maxValueSet.find(tmp));
+            {
+              maxValueSet.erase(maxValueSet.find(tmp));
+            }
         }
     }
   catch (...)
@@ -368,7 +374,8 @@ FunctionMaxima<A, V>::erase(A const &a)
 {
   iterator it = valueSet.find(point_type(std::make_shared<const A>(a)));
   if (it == valueSet.end())
-    throw InvalidArg("invalid argument value");
+    return;
+
 
   if (valueSet.size() == 1)
     {
@@ -427,6 +434,7 @@ FunctionMaxima<A, V>::erase(A const &a)
         maxValueSet.erase(*next);
       throw;
     }
+
 
 
   return;
