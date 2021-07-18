@@ -435,8 +435,6 @@ FunctionMaxima<A, V>::erase(A const &a)
       throw;
     }
 
-
-
   return;
 }
 
