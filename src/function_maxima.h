@@ -1,4 +1,7 @@
-#include <bits/stdc++.h>
+#ifndef FUNCTION_MAXIMA_H
+#  define FUNCTION_MAXIMA_H
+
+#  include <bits/stdc++.h>
 template <typename A, typename V>
 class FunctionMaxima;
 
@@ -487,3 +490,4 @@ FunctionMaxima<A, V>::size() const
 {
   return size_type(valueSet.size());
 }
+#endif
