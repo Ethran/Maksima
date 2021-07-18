@@ -13,7 +13,7 @@ private:
   struct cmp;
   struct cmpMax;
 
-  using Data_t     = std::set<point_type, cmp>;
+  using Data_t     = std::multiset<point_type, cmp>;
   using Data_max_t = std::set<point_type, cmpMax>;
 
   using A_ptr = std::shared_ptr<const A>;
@@ -185,10 +185,10 @@ FunctionMaxima<A, V>::check(iterator it) noexcept
       assert(maxValueSet.size() == 1);
       return;
     }
-  auto next = it;
-  ++next;
-  auto previous = it;
-  if (it != valueSet.begin())
+  auto next     = valueSet.upper_bound(*it);
+  auto previous = valueSet.lower_bound(*it);
+  ;
+  if (previous != valueSet.begin())
     {
       --previous;
       if (it->value() < previous->value())
@@ -197,6 +197,16 @@ FunctionMaxima<A, V>::check(iterator it) noexcept
 
   if (next != valueSet.end())
     {
+      auto tmp = next;
+      ++tmp;
+      // jesli nastepne jest podwojone;
+      if (tmp != valueSet.end())
+        {
+          if (!(next->arg() < tmp->arg()) && !(tmp->arg() < next->arg()))
+            {
+              next = tmp;
+            }
+        }
       if (it->value() < next->value())
         maxValueSet.erase(*it);
     }
@@ -257,20 +267,6 @@ FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
 {
   point_type toInsert =
     point_type(std::make_shared<const A>(arg), std::make_shared<const V>(val));
-
-
-  point_type tmp   = point_type(std::make_shared<const A>(arg));
-  bool       reset = false;
-  Data_t     backup;
-  point_type toErase = toInsert;
-
-  if (valueSet.find(tmp) != valueSet.end())
-    {
-      backup  = valueSet;
-      toErase = *valueSet.find(tmp);
-      valueSet.erase(tmp);
-      reset = true;
-    }
   if (valueSet.size() == 0)
     {
       valueSet.insert(toInsert);
@@ -279,25 +275,41 @@ FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
       return;
     }
 
+
+  point_type tmp         = point_type(std::make_shared<const A>(arg));
+  bool       toRemove    = false;
+  bool       toRemoveMax = false;
+
+  if (valueSet.find(tmp) != valueSet.end())
+    {
+      tmp = *valueSet.find(tmp);
+      if (maxValueSet.find(tmp) != maxValueSet.end())
+        toRemoveMax = true;
+
+      toRemove = true;
+    }
+
+
   iterator previous;
   iterator next;
   iterator present;
   bool     a = false, b = false, c = false, d = false;
   try
     {
-      valueSet.insert(toInsert); // silna odpornosc gwarantowana
-      a = true;
+      present = valueSet.insert(toInsert);
+      a       = true;
       maxValueSet.insert(toInsert);
       b        = true;
-      present  = valueSet.find(toInsert);
-      next     = present;
-      previous = present;
+      next     = valueSet.upper_bound(toInsert);
+      previous = valueSet.lower_bound(toInsert);
       check(present);
 
-      ++next;
-      if (present != valueSet.begin())
+
+
+      if (previous != valueSet.begin())
         {
           --previous;
+
           if (maxValueSet.find(*previous) == maxValueSet.end())
             {
               maxValueSet.insert(*previous);
@@ -316,26 +328,35 @@ FunctionMaxima<A, V>::set_value(A const &arg, V const &val)
             }
           check(next);
         }
-      if (reset)
+      if (toRemove)
         {
-          if (maxValueSet.find(toErase) != maxValueSet.end())
-            {
-              maxValueSet.erase(toErase);
-            }
+          valueSet.erase(valueSet.lower_bound(tmp));
+          if (toRemoveMax)
+            maxValueSet.erase(maxValueSet.find(tmp));
         }
     }
   catch (...)
     {
-      if (reset)
-        valueSet = move(backup);
-      else if (a)
-        valueSet.erase(toInsert);
+      if (a)
+        {
+          if (valueSet.find(toInsert) != valueSet.end())
+            valueSet.erase(toInsert);
+        }
       if (b)
-        maxValueSet.erase(toInsert);
+        {
+          if (maxValueSet.find(toInsert) != maxValueSet.end())
+            maxValueSet.erase(toInsert);
+        }
       if (c)
-        maxValueSet.erase(*previous);
+        {
+          if (maxValueSet.find(*previous) != maxValueSet.end())
+            maxValueSet.erase(*previous);
+        }
       if (d)
-        maxValueSet.erase(*next);
+        {
+          if (maxValueSet.find(*next) != maxValueSet.end())
+            maxValueSet.erase(*next);
+        }
       throw;
     }
 }

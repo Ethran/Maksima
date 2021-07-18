@@ -66,7 +66,7 @@ main()
 {
   FunctionMaxima<int, int> fun;
   fun.set_value(0, 1);
-  assert((fun_equal<int, int>(fun, {{0, 1}})));
+  assert(fun_equal(fun, {{0, 1}}));
   assert(fun_mx_equal(fun, {{0, 1}}));
 
   fun.set_value(0, 0);
@@ -77,16 +77,6 @@ main()
   fun.set_value(2, 0);
   assert(fun_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
   assert(fun_mx_equal(fun, {{0, 0}, {1, 0}, {2, 0}}));
-  try
-    {
-      fun.value_at(0);
-      fun.value_at(2);
-      fun.value_at(13);
-    }
-  catch (InvalidArg &e)
-    {
-      std::cout << e.what() << std::endl;
-    }
 
   fun.set_value(1, 1);
   assert(fun_mx_equal(fun, {{1, 1}}));
@@ -106,10 +96,10 @@ main()
     {
       std::cout << e.what() << std::endl;
     }
+
   fun.erase(1);
   assert(fun.find(1) == fun.end());
   assert(fun_mx_equal(fun, {{0, 2}, {2, 2}}));
-
 
   fun.set_value(-2, 0);
   fun.set_value(-1, -1);
